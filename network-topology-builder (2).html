@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>NetTopo</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@600;700&family=Exo+2:wght@300;400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#07090f;--s1:#0d1120;--s2:#131a2e;--s3:#1a2340;--b1:#1e2d4a;--b2:#2a3f60;
+  --acc:#00c8ff;--grn:#00ff9d;--tx:#c8d8f0;--txd:#3a5070;--txm:#6a90b0;--red:#ff3b5c;--yel:#ffb800;}
+html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'Exo 2',sans-serif;overflow:hidden}
+#app{display:grid;grid-template-columns:380px 1fr;height:100vh}
+#panel{background:var(--s1);border-right:1px solid var(--b1);display:flex;flex-direction:column;overflow:hidden}
+#canvas-area{position:relative;overflow:hidden}
+#topbar{padding:10px 14px 8px;border-bottom:1px solid var(--b1);flex-shrink:0}
+.logo{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:18px;color:var(--acc);letter-spacing:3px;display:flex;align-items:center;gap:6px;margin-bottom:7px}
+.pulse{width:7px;height:7px;background:var(--grn);border-radius:50%;animation:pu 2s infinite}
+@keyframes pu{0%,100%{opacity:1}50%{opacity:.2}}
+.top-btns{display:flex;gap:5px;flex-wrap:wrap}
+.btn{padding:5px 10px;border-radius:4px;border:none;font-family:'Exo 2',sans-serif;font-weight:700;font-size:11px;cursor:pointer;transition:.15s}
+.btn-acc{background:var(--acc);color:#000}.btn-acc:hover{background:#30d6ff}
+.btn-grn{background:var(--grn);color:#000}.btn-grn:hover{background:#30ffb0}
+.btn-g{background:transparent;border:1px solid var(--b2);color:var(--txm)}.btn-g:hover{border-color:var(--acc);color:var(--acc)}
+.btn-r{background:var(--red);color:#fff}
+#wiz-scroll{flex:1;overflow-y:auto;padding:12px}
+#wiz-scroll::-webkit-scrollbar{width:3px}
+#wiz-scroll::-webkit-scrollbar-thumb{background:var(--b2)}
+#progress{display:flex;gap:3px;margin-bottom:10px}
+.pd{flex:1;height:3px;border-radius:2px;background:var(--b1);transition:.3s}
+.pd.done{background:var(--acc)}.pd.active{background:var(--grn)}
+.sq{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;color:var(--tx);margin-bottom:3px;line-height:1.3}
+.sh{font-size:10px;color:var(--txd);margin-bottom:9px;line-height:1.5}
+.og{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:8px}
+.og.w1{grid-template-columns:1fr}
+.oc{background:var(--s2);border:1px solid var(--b1);border-radius:5px;padding:7px 8px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:.15s}
+.oc:hover{border-color:var(--acc);background:rgba(0,200,255,.05)}
+.oc.sel{border-color:var(--acc);background:rgba(0,200,255,.09)}
+.oi{font-size:15px;flex-shrink:0;width:20px;text-align:center}
+.ol{font-size:10px;font-weight:700;color:var(--tx);line-height:1.2}
+.os{font-size:9px;color:var(--txd);margin-top:1px;font-family:'Share Tech Mono',monospace}
+.fg{margin-bottom:6px}
+.fg label{display:block;font-size:9px;font-weight:700;color:var(--txm);letter-spacing:.6px;margin-bottom:2px;text-transform:uppercase}
+.fg input,.fg select{width:100%;background:var(--s2);border:1px solid var(--b1);border-radius:4px;color:var(--tx);font-family:'Exo 2',sans-serif;font-size:11px;padding:5px 7px;outline:none;transition:.15s}
+.fg input:focus,.fg select:focus{border-color:var(--acc)}
+.fg select option{background:var(--s2)}
+.r2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.add-box{background:var(--s3);border:1px solid var(--b2);border-radius:5px;padding:8px;margin-bottom:7px}
+.item-list{margin-bottom:7px}
+.item-row{background:var(--s2);border:1px solid var(--b1);border-radius:4px;padding:5px 8px;margin-bottom:4px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.item-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+.item-name{font-size:10px;font-weight:700;color:var(--tx);flex:1;min-width:60px}
+.item-sub{font-size:9px;color:var(--txd);font-family:'Share Tech Mono',monospace;width:100%;margin-top:1px}
+.item-sites{display:flex;gap:3px;flex-wrap:wrap;margin-top:2px;width:100%}
+.site-badge{font-size:8px;font-weight:700;padding:1px 5px;border-radius:10px;font-family:'Share Tech Mono',monospace}
+.item-del{background:none;border:none;color:var(--txd);cursor:pointer;font-size:12px;padding:0;flex-shrink:0}
+.item-del:hover{color:var(--red)}
+.nav{display:flex;gap:6px;margin-top:10px}
+.nav-back{background:none;border:1px solid var(--b2);color:var(--txm);border-radius:4px;padding:6px 12px;font-family:'Exo 2',sans-serif;font-weight:700;font-size:11px;cursor:pointer}
+.nav-back:hover{border-color:var(--acc);color:var(--acc)}
+.nav-next{flex:1;background:var(--acc);color:#000;border:none;border-radius:4px;padding:6px;font-family:'Exo 2',sans-serif;font-weight:700;font-size:11px;cursor:pointer}
+.nav-next:hover{background:#30d6ff}
+.nav-gen{flex:1;background:var(--grn);color:#000;border:none;border-radius:4px;padding:8px;font-family:'Exo 2',sans-serif;font-weight:700;font-size:12px;cursor:pointer}
+.nav-gen:hover{background:#30ffb0}
+/* site checkboxes */
+.site-checks{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}
+.site-check{display:flex;align-items:center;gap:4px;background:var(--s2);border:1px solid var(--b1);border-radius:4px;padding:4px 8px;cursor:pointer;transition:.15s;font-size:10px;font-weight:700}
+.site-check:hover{border-color:var(--acc)}
+.site-check.on{border-color:var(--acc);background:rgba(0,200,255,.08);color:var(--acc)}
+.site-check.is-filial{border-color:#a3e63555}
+.site-check.is-filial.on{border-color:#a3e635;background:rgba(163,230,53,.08);color:#a3e635}
+.site-check input{display:none}
+/* summary */
+.sum-section{margin-bottom:10px}
+.sum-title{font-size:9px;font-weight:700;color:var(--acc);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:5px}
+.sum-chip{display:inline-flex;align-items:center;gap:4px;background:var(--s2);border:1px solid var(--b2);border-radius:10px;padding:2px 8px;font-size:9px;color:var(--txm);margin:2px}
+/* canvas */
+#cov{position:absolute;top:10px;right:10px;display:flex;gap:4px;flex-direction:column}
+.cbtn{background:rgba(13,18,32,.92);border:1px solid var(--b1);border-radius:4px;padding:5px 9px;color:var(--txm);font-size:11px;cursor:pointer;font-family:'Exo 2',sans-serif;font-weight:600}
+.cbtn:hover{color:var(--acc);border-color:var(--acc)}
+#empty-msg{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;pointer-events:none}
+.em-i{font-size:48px;opacity:.08}
+.em-t{color:var(--txd);font-size:12px;text-align:center;line-height:1.9;font-family:'Rajdhani',sans-serif;letter-spacing:1px}
+</style>
+</head>
+<body>
+<div id="app">
+<div id="panel">
+  <div id="topbar">
+    <div class="logo"><div class="pulse"></div>NETTOPO</div>
+    <div class="top-btns">
+      <button class="btn btn-acc" id="btn-gen">&#9654; Gerar</button>
+      <button class="btn btn-grn" id="btn-png">&#8595; PNG</button>
+      <button class="btn btn-g"   id="btn-pdf">&#8595; PDF</button>
+      <button class="btn btn-r"   id="btn-rst">&#10005; Reiniciar</button>
+    </div>
+  </div>
+  <div id="wiz-scroll">
+    <div id="progress"></div>
+    <div id="step-wrap"></div>
+  </div>
+</div>
+<div id="canvas-area">
+  <svg id="svg" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;cursor:grab"></svg>
+  <div id="cov">
+    <button class="cbtn" id="btn-zi">&#65291;</button>
+    <button class="cbtn" id="btn-zo">&#65293;</button>
+    <button class="cbtn" id="btn-rv">&#8982;</button>
+  </div>
+  <div id="empty-msg">
+    <div class="em-i">&#11041;</div>
+    <div class="em-t">Responda as perguntas no painel<br>e clique em GERAR</div>
+  </div>
+</div>
+</div>
+<script>
+(function(){
+'use strict';
+
+// ── STATE ──────────────────────────────────────────
+// sites[0] = matriz, sites[1..n] = filiais
+// cada site tem: {id, name, tipo:'matriz'|'filial', wanLink, items:{layer:[{...}]}}
+var sites = [{id:'s0', name:'Matriz', tipo:'matriz', wanLink:'', items:{}}];
+var curSite = 0;  // site ativo no wizard
+var curStep = 0;
+var sel = {};     // selections por step (shared)
+var uid  = 1;
+var vx=0, vy=0, vs=1, drag=false, lx=0, ly=0;
+
+// Projeto
+var proj = {name:'Topologia de Rede', client:'', author:'', cls:'Confidencial'};
+
+// ── ASSET META ─────────────────────────────────────
+var AMETA = {
+  internet:{label:'Internet/ISP',     col:'#38bdf8'},
+  modem:   {label:'Modem/ONT',        col:'#7dd3fc'},
+  fw:      {label:'Firewall NGFW',    col:'#ff6b35'},
+  router:  {label:'Roteador',         col:'#fb923c'},
+  vpn:     {label:'VPN Gateway',      col:'#e879f9'},
+  ids:     {label:'IDS/IPS',          col:'#ff3b5c'},
+  waf:     {label:'WAF',              col:'#f59e0b'},
+  ddos:    {label:'Anti-DDoS',        col:'#ef4444'},
+  ztna:    {label:'ZTNA/SDP',         col:'#8b5cf6'},
+  sase:    {label:'SASE',             col:'#7c3aed'},
+  proxy:   {label:'Proxy/SWG',        col:'#34d399'},
+  sdwan:   {label:'SD-WAN',           col:'#f97316'},
+  lb:      {label:'Load Balancer',    col:'#fbbf24'},
+  revproxy:{label:'Proxy Reverso',    col:'#6ee7b7'},
+  mailgw:  {label:'Mail Gateway',     col:'#a78bfa'},
+  sw:      {label:'Switch',           col:'#00c8ff'},
+  sw3:     {label:'Switch L3',        col:'#22d3ee'},
+  nac:     {label:'NAC',              col:'#0ea5e9'},
+  edr:     {label:'EDR/XDR',          col:'#f43f5e'},
+  dlp:     {label:'DLP',              col:'#f87171'},
+  pam:     {label:'PAM',              col:'#c084fc'},
+  iam:     {label:'IAM/MFA',          col:'#a78bfa'},
+  auth:    {label:'Auth/AD/LDAP',     col:'#818cf8'},
+  deception:{label:'Deception/Honeyp',col:'#fb7185'},
+  casb:    {label:'CASB',             col:'#e879f9'},
+  vm_sec:  {label:'Vuln. Management', col:'#fbbf24'},
+  hsm:     {label:'HSM/PKI',          col:'#fcd34d'},
+  siem:    {label:'SIEM/SOAR',        col:'#6366f1'},
+  ndr:     {label:'NDR/NTA',          col:'#a855f7'},
+  ueba:    {label:'UEBA',             col:'#9333ea'},
+  cti:     {label:'CTI/Threat Intel', col:'#f87171'},
+  soc:     {label:'SOC Platform',     col:'#4f46e5'},
+  srv:     {label:'Servidor',         col:'#a855f7'},
+  vm:      {label:'VM/Container',     col:'#c084fc'},
+  ds:      {label:'Banco/DB',         col:'#ffb800'},
+  nas:     {label:'NAS/Storage',      col:'#fde68a'},
+  backup:  {label:'Backup Server',    col:'#94a3b8'},
+  ep:      {label:'Endpoint/PC',      col:'#00ff9d'},
+  ap:      {label:'Access Point',     col:'#67e8f9'},
+  mobile:  {label:'Mobile/IoT',       col:'#4ade80'},
+  voip:    {label:'VoIP/UC',          col:'#86efac'},
+  plc:     {label:'PLC/CLP',          col:'#ffb800'},
+  hmi:     {label:'HMI',              col:'#fcd34d'},
+  scada:   {label:'SCADA/DCS',        col:'#fde68a'},
+  ot_fw:   {label:'Firewall OT',      col:'#ff6b35'},
+  ot_ids:  {label:'IDS OT',           col:'#ff3b5c'},
+  cloud:   {label:'Cloud IaaS/PaaS',  col:'#38bdf8'},
+  saas:    {label:'SaaS',             col:'#7dd3fc'},
+  idp:     {label:'IdP/SSO',          col:'#c084fc'},
+  cspm:    {label:'CSPM/CWPP',        col:'#0ea5e9'},
+  cnapp:   {label:'CNAPP/DevSecOps',  col:'#06b6d4'},
+  ciem:    {label:'CIEM',             col:'#38bdf8'},
+};
+
+// ── LAYERS (ordem top→bottom) ─────────────────────
+var LAYER_DEFS = [
+  {key:'internet', label:'INTERNET / WAN',     col:'rgba(56,189,248,.06)',  brd:'rgba(56,189,248,.3)'},
+  {key:'borda',    label:'BORDA / PERÍMETRO',   col:'rgba(255,107,53,.06)', brd:'rgba(255,107,53,.3)'},
+  {key:'dmz',      label:'DMZ',                 col:'rgba(251,146,60,.06)', brd:'rgba(251,146,60,.25)'},
+  {key:'core',     label:'CORE / DISTRIBUIÇÃO', col:'rgba(0,200,255,.05)',  brd:'rgba(0,200,255,.25)'},
+  {key:'servicos', label:'SERVICOS / DADOS',    col:'rgba(168,85,247,.05)', brd:'rgba(168,85,247,.22)'},
+  {key:'usuarios', label:'USUARIOS / ACESSO',   col:'rgba(0,255,157,.04)',  brd:'rgba(0,255,157,.2)'},
+  {key:'ot',       label:'OT / ICS',            col:'rgba(255,184,0,.05)',  brd:'rgba(255,184,0,.25)'},
+  {key:'cloud',    label:'CLOUD / SaaS',        col:'rgba(56,189,248,.05)', brd:'rgba(56,189,248,.22)'},
+];
+
+var WAN_STYLES = {
+  mpls:     {col:'#a3e635',dash:''},
+  vpn_site: {col:'#8b5cf6',dash:'8,3'},
+  sdwan:    {col:'#f97316',dash:'6,2'},
+  internet: {col:'#38bdf8',dash:'10,4'},
+  '4g':     {col:'#fbbf24',dash:'4,4'},
+};
+
+// ── STEPS ─────────────────────────────────────────
+// Cada step de ADD tem campo "sites" — quais sites o item se aplica
+var STEPS = [
+  {id:'meta',q:'Sobre o projeto',hint:'Informações básicas.',type:'form'},
+
+  {id:'sites-q',q:'A rede tem filiais ou sites remotos?',hint:'Defina a quantidade de sites. Depois, cada equipamento perguntará em quais sites se aplica.',type:'opts',multi:false,
+   opts:[{icon:'🏢',label:'Sim, tenho filiais',sub:'Escritórios, lojas, DCs remotos...',val:'yes'},
+         {icon:'➡️',label:'Rede única (só matriz)',val:'no'}]},
+
+  {id:'sites-cfg',q:'Configure os sites remotos',hint:'Adicione cada filial/site. Depois você define quais equipamentos se aplicam a cada um.',type:'sites'},
+
+  {id:'net',q:'Saída para Internet?',hint:'Define a conectividade externa do(s) site(s).',type:'opts',multi:false,
+   opts:[{icon:'🌐',label:'Sim, com ISP/WAN',val:'yes'},{icon:'🔒',label:'Rede isolada',val:'no'}]},
+
+  {id:'isp',q:'Links de Internet / WAN',hint:'Por site: ISP, MPLS, link dedicado...',type:'add',layer:'internet',
+   fields:[{id:'name',label:'Nome',ph:'ISP-Principal'},{id:'ip',label:'IP Publico',ph:'200.x.x.x'},{id:'vendor',label:'Operadora',ph:'Claro, Embratel...'}],defType:'internet'},
+
+  {id:'ddos-q',q:'Existe Anti-DDoS?',hint:'Scrubbing center, Cloudflare, Akamai, Arbor...',type:'opts',multi:false,
+   opts:[{icon:'🛡️',label:'Sim, Anti-DDoS',val:'yes'},{icon:'➡️',label:'Nao',val:'no'}]},
+  {id:'ddos-add',q:'Configure Anti-DDoS',hint:'Por site que tiver Anti-DDoS.',type:'add',layer:'borda',
+   fields:[{id:'name',label:'Nome',ph:'DDOS-PROT-01'},{id:'ip',label:'IP',ph:'200.x.x.x'},{id:'vendor',label:'Vendor',ph:'Cloudflare, Akamai, Arbor...'}],defType:'ddos'},
+
+  {id:'sase-q',q:'Existe SASE ou ZTNA/SDP?',hint:'Zscaler, Prisma, Cato, Akamai ZTNA, Netskope...',type:'opts',multi:false,
+   opts:[{icon:'☁️',label:'Sim, SASE/ZTNA',val:'yes'},{icon:'➡️',label:'Nao',val:'no'}]},
+  {id:'sase-add',q:'Configure SASE / ZTNA',hint:'Pontos de entrada SASE ou ZTNA.',type:'add',layer:'borda',
+   fields:[{id:'name',label:'Nome',ph:'ZTNA-EDGE-01'},{id:'type',label:'Tipo',type:'sel',opts:[['ztna','ZTNA/SDP'],['sase','SASE'],['sdwan','SD-WAN'],['proxy','SWG/Proxy Cloud']]},{id:'vendor',label:'Vendor',ph:'Zscaler, Akamai, Palo Prisma...'}]},
+
+  {id:'borda',q:'Equipamentos de borda',hint:'Firewall NGFW, roteador, VPN gateway, IDS/IPS de perimetro. Indique em quais sites cada um se aplica.',type:'add',layer:'borda',
+   fields:[{id:'name',label:'Nome',ph:'FW-BORDA-01'},{id:'type',label:'Tipo',type:'sel',opts:[['fw','Firewall NGFW'],['router','Roteador'],['vpn','VPN Gateway'],['ids','IDS/IPS'],['waf','WAF'],['proxy','Proxy/SWG'],['sdwan','SD-WAN']]},{id:'ip',label:'IP',ph:'200.x.x.1'},{id:'vendor',label:'Vendor',ph:'Palo Alto, Check Point, Cisco...'},{id:'ha',label:'Par HA?',type:'sel',opts:[['no','Nao'],['yes','Sim - par HA']]}]},
+
+  {id:'ha',q:'Modelo de HA (borda)',hint:'Como os firewalls de borda estao configurados em HA.',type:'opts',multi:false,
+   opts:[{icon:'⚡',label:'Ativo-Passivo',sub:'Um ativo, outro standby',val:'ap'},{icon:'⚡',label:'Ativo-Ativo',sub:'Ambos processam trafego',val:'aa'},{icon:'➡️',label:'Sem HA',val:'none'}]},
+
+  {id:'waf-q',q:'Existe WAF?',hint:'WAF on-premise, cloud ou embutido no load balancer.',type:'opts',multi:false,
+   opts:[{icon:'🔰',label:'Sim, tenho WAF',val:'yes'},{icon:'➡️',label:'Nao',val:'no'}]},
+  {id:'waf-add',q:'Configure o WAF',hint:'WAF dedicado, por site onde se aplica.',type:'add',layer:'dmz',
+   fields:[{id:'name',label:'Nome',ph:'WAF-01'},{id:'ip',label:'IP',ph:'172.16.0.x'},{id:'vendor',label:'Vendor',ph:'F5, Imperva, AWS WAF...'}],defType:'waf'},
+
+  {id:'dmz',q:'Existe zona DMZ?',hint:'Servidores publicados: web, email, proxy reverso, APIs...',type:'opts',multi:false,
+   opts:[{icon:'🏛️',label:'Sim, tenho DMZ',val:'yes'},{icon:'➡️',label:'Nao',val:'no'}]},
+  {id:'dmz-add',q:'Equipamentos da DMZ',hint:'Servidores, WAF, proxy reverso, load balancer. Por site.',type:'add',layer:'dmz',
+   fields:[{id:'name',label:'Nome',ph:'SRV-WEB-01'},{id:'type',label:'Tipo',type:'sel',opts:[['srv','Servidor Web/App'],['lb','Load Balancer'],['revproxy','Proxy Reverso'],['mailgw','Mail Gateway'],['ids','IDS/IPS DMZ'],['fw','Firewall DMZ']]},{id:'ip',label:'IP',ph:'172.16.1.x'},{id:'vendor',label:'Vendor',ph:'Nginx, F5, Mimecast...'}]},
+
+  {id:'nac-q',q:'Existe NAC (Network Access Control)?',hint:'802.1X, posture check, quarentena...',type:'opts',multi:false,
+   opts:[{icon:'🔑',label:'Sim, tenho NAC',val:'yes'},{icon:'➡️',label:'Nao',val:'no'}]},
+  {id:'nac-add',q:'Configure o NAC',hint:'Servidor NAC/RADIUS, por site.',type:'add',layer:'core',
+   fields:[{id:'name',label:'Nome',ph:'NAC-01'},{id:'ip',label:'IP',ph:'10.0.0.x'},{id:'vendor',label:'Vendor',ph:'Cisco ISE, Aruba ClearPass, Forescout...'}],defType:'nac'},
+
+  {id:'core',q:'Core de rede',hint:'Switches core, L3, IDS/IPS inline. Por site.',type:'add',layer:'core',
+   fields:[{id:'name',label:'Nome',ph:'SW-CORE-01'},{id:'type',label:'Tipo',type:'sel',opts:[['sw','Switch'],['sw3','Switch L3'],['router','Roteador Core'],['ids','IDS/IPS Inline'],['lb','Load Balancer'],['nac','NAC']]},{id:'ip',label:'IP Gerencia',ph:'10.0.0.1'},{id:'vendor',label:'Vendor',ph:'Cisco, Juniper, Aruba...'},{id:'ha',label:'Par redundante?',type:'sel',opts:[['no','Nao'],['yes','Sim']]}]},
+
+  {id:'vlan',q:'Rede usa VLANs?',hint:'VLANs aparecem nos equipamentos e links.',type:'opts',multi:false,
+   opts:[{icon:'📋',label:'Sim, configurar VLANs',val:'yes'},{icon:'➡️',label:'Nao',val:'no'}]},
+  {id:'vlan-add',q:'Configure as VLANs',hint:'Ex.: 10-PROD, 20-MGMT, 30-DMZ, 40-GUEST, 50-OT...',type:'add',layer:'vlans',
+   fields:[{id:'vid',label:'ID (1-4094)',ph:'10',itype:'number'},{id:'name',label:'Nome',ph:'PROD'},{id:'cidr',label:'Subnet',ph:'192.168.10.0/24'},{id:'color',label:'Cor',itype:'color',def:'#00c8ff'}],defType:'vlan'},
+
+  {id:'pam-q',q:'Existe PAM?',hint:'CyberArk, BeyondTrust, Senhasegura...',type:'opts',multi:false,
+   opts:[{icon:'🗝️',label:'Sim, tenho PAM',val:'yes'},{icon:'➡️',label:'Nao',val:'no'}]},
+  {id:'pam-add',q:'Configure o PAM',hint:'Cofre de senhas, sessao privilegiada. Por site.',type:'add',layer:'servicos',
+   fields:[{id:'name',label:'Nome',ph:'PAM-01'},{id:'ip',label:'IP',ph:'10.0.10.x'},{id:'vendor',label:'Vendor',ph:'CyberArk, Senhasegura, BeyondTrust...'}],defType:'pam'},
+
+  {id:'iam-q',q:'Existe IAM / MFA / SSO?',hint:'Identity and Access Management, autenticacao multifator.',type:'opts',multi:false,
+   opts:[{icon:'🪪',label:'Sim, tenho IAM/MFA',val:'yes'},{icon:'➡️',label:'Nao',val:'no'}]},
+  {id:'iam-add',q:'Configure IAM / MFA / SSO',hint:'Servidor de autenticacao, IdP, MFA, AD, LDAP.',type:'add',layer:'servicos',
+   fields:[{id:'name',label:'Nome',ph:'IAM-MFA-01'},{id:'type',label:'Tipo',type:'sel',opts:[['iam','IAM/MFA'],['auth','AD/LDAP/RADIUS'],['idp','IdP/SSO/SAML']]},{id:'ip',label:'IP',ph:'10.0.10.x'},{id:'vendor',label:'Vendor',ph:'Okta, Azure AD, Duo, Ping...'}]},
+
+  {id:'edr-q',q:'Existe EDR ou XDR?',hint:'Endpoint Detection and Response, Extended DR.',type:'opts',multi:false,
+   opts:[{icon:'🛡️',label:'Sim, tenho EDR/XDR',val:'yes'},{icon:'➡️',label:'Nao',val:'no'}]},
+  {id:'edr-add',q:'Configure EDR / XDR',hint:'Console central do EDR/XDR.',type:'add',layer:'servicos',
+   fields:[{id:'name',label:'Nome',ph:'EDR-CONSOLE-01'},{id:'ip',label:'IP',ph:'10.0.10.x'},{id:'vendor',label:'Vendor',ph:'CrowdStrike, SentinelOne, Defender...'}],defType:'edr'},
+
+  {id:'dlp-q',q:'Existe DLP?',hint:'Prevencao de vazamento de dados.',type:'opts',multi:false,
+   opts:[{icon:'🔏',label:'Sim, tenho DLP',val:'yes'},{icon:'➡️',label:'Nao',val:'no'}]},
+  {id:'dlp-add',q:'Configure o DLP',hint:'Appliance ou plataforma DLP, por site.',type:'add',layer:'servicos',
+   fields:[{id:'name',label:'Nome',ph:'DLP-01'},{id:'ip',label:'IP',ph:'10.0.10.x'},{id:'vendor',label:'Vendor',ph:'Symantec, Forcepoint, Microsoft Purview...'}],defType:'dlp'},
+
+  {id:'deception-q',q:'Existe Deception / Honeypot?',hint:'Honeypots, honeytokens, decoy assets.',type:'opts',multi:false,
+   opts:[{icon:'🍯',label:'Sim, tenho Deception',val:'yes'},{icon:'➡️',label:'Nao',val:'no'}]},
+  {id:'deception-add',q:'Configure Deception / Honeypot',hint:'Decoys de rede e credenciais.',type:'add',layer:'servicos',
+   fields:[{id:'name',label:'Nome',ph:'HONEYPOT-01'},{id:'ip',label:'IP',ph:'10.0.x.x'},{id:'vendor',label:'Vendor',ph:'Attivo, Thinkst Canary, Illusive...'}],defType:'deception'},
+
+  {id:'vm-q',q:'Existe Vulnerability Management?',hint:'Scanner de vuln., SAST/DAST, gestao de patches.',type:'opts',multi:false,
+   opts:[{icon:'🔍',label:'Sim, tenho Vuln. Management',val:'yes'},{icon:'➡️',label:'Nao',val:'no'}]},
+  {id:'vm-add',q:'Configure Vulnerability Management',hint:'Scanner de rede/host.',type:'add',layer:'servicos',
+   fields:[{id:'name',label:'Nome',ph:'VULN-MGR-01'},{id:'ip',label:'IP',ph:'10.0.10.x'},{id:'vendor',label:'Vendor',ph:'Tenable, Qualys, Rapid7, OpenVAS...'}],defType:'vm_sec'},
+
+  {id:'hsm-q',q:'Existe HSM ou PKI?',hint:'Hardware Security Module, CA interna, certificados.',type:'opts',multi:false,
+   opts:[{icon:'🔐',label:'Sim, tenho HSM/PKI',val:'yes'},{icon:'➡️',label:'Nao',val:'no'}]},
+  {id:'hsm-add',q:'Configure HSM / PKI',hint:'HSM fisico ou virtual, CA raiz.',type:'add',layer:'servicos',
+   fields:[{id:'name',label:'Nome',ph:'HSM-01'},{id:'ip',label:'IP',ph:'10.0.10.x'},{id:'vendor',label:'Vendor',ph:'Thales Luna, Entrust, AWS CloudHSM...'}],defType:'hsm'},
+
+  {id:'siem-q',q:'Existe SIEM / SOC / NDR / UEBA?',hint:'Plataformas de monitoramento e operacoes de seguranca.',type:'opts',multi:false,
+   opts:[{icon:'📊',label:'Sim, tenho SOC/SIEM',val:'yes'},{icon:'➡️',label:'Nao',val:'no'}]},
+  {id:'siem-add',q:'Configure ferramentas de SOC',hint:'SIEM, SOAR, NDR, UEBA, CTI. Por site.',type:'add',layer:'servicos',
+   fields:[{id:'name',label:'Nome',ph:'SIEM-01'},{id:'type',label:'Tipo',type:'sel',opts:[['siem','SIEM/SOAR'],['ndr','NDR/NTA'],['ueba','UEBA'],['soc','SOC Platform'],['cti','CTI/Threat Intel']]},{id:'ip',label:'IP',ph:'10.0.10.x'},{id:'vendor',label:'Vendor',ph:'Splunk, Wazuh, Sentinel, SOCRadar, Lumu...'}]},
+
+  {id:'svc',q:'Servidores e servicos internos',hint:'Aplicacao, DB, NAS, backup, email, ERP. Por site.',type:'add',layer:'servicos',
+   fields:[{id:'name',label:'Nome',ph:'SRV-APP-01'},{id:'type',label:'Tipo',type:'sel',opts:[['srv','Servidor App/Web'],['ds','Banco/DB'],['nas','NAS/Storage'],['vm','VM/Container'],['backup','Backup Server']]},{id:'ip',label:'IP',ph:'10.0.10.x'},{id:'vendor',label:'Vendor',ph:'Windows Server, Linux...'}]},
+
+  {id:'casb-q',q:'Existe CASB?',hint:'Cloud Access Security Broker - controle de SaaS/Shadow IT.',type:'opts',multi:false,
+   opts:[{icon:'☁️',label:'Sim, tenho CASB',val:'yes'},{icon:'➡️',label:'Nao',val:'no'}]},
+  {id:'casb-add',q:'Configure o CASB',hint:'CASB inline, API ou forward proxy.',type:'add',layer:'cloud',
+   fields:[{id:'name',label:'Nome',ph:'CASB-01'},{id:'vendor',label:'Vendor',ph:'Netskope, MCAS, Zscaler...'}],defType:'casb'},
+
+  {id:'users',q:'Existem endpoints / usuarios?',hint:'PCs, notebooks, dispositivos moveis, VoIP, Wi-Fi...',type:'opts',multi:false,
+   opts:[{icon:'💻',label:'Sim, adicionar endpoints',val:'yes'},{icon:'➡️',label:'Nao representar',val:'no'}]},
+  {id:'usr-add',q:'Endpoints e acesso de usuarios',hint:'Por site onde existem usuarios.',type:'add',layer:'usuarios',
+   fields:[{id:'name',label:'Nome/Grupo',ph:'Estacoes-RH / AP-Andar2'},{id:'type',label:'Tipo',type:'sel',opts:[['ep','Endpoint/PC'],['ap','Access Point'],['mobile','Mobile/IoT'],['voip','VoIP/UC'],['sw','Switch Acesso']]},{id:'ip',label:'IP/Range',ph:'10.0.20.0/24'}]},
+
+  {id:'ot',q:'Existe rede OT / ICS / SCADA?',hint:'PLCs, HMIs, SCADA, DCS, historiadores...',type:'opts',multi:false,
+   opts:[{icon:'🏭',label:'Sim, tenho OT/ICS',val:'yes'},{icon:'➡️',label:'Nao',val:'no'}]},
+  {id:'ot-add',q:'Ativos OT / ICS / SCADA',hint:'Por site industrial.',type:'add',layer:'ot',
+   fields:[{id:'name',label:'Nome',ph:'PLC-LINHA-01'},{id:'type',label:'Tipo',type:'sel',opts:[['plc','PLC/CLP'],['hmi','HMI'],['scada','SCADA/DCS'],['ot_fw','Firewall OT'],['ot_ids','IDS OT']]},{id:'ip',label:'IP',ph:'192.168.100.x'},{id:'vendor',label:'Vendor',ph:'Siemens, Rockwell, Dragos...'}]},
+
+  {id:'cloud',q:'Integracao com Cloud ou SaaS?',hint:'AWS, Azure, GCP, M365, CTI feeds...',type:'opts',multi:false,
+   opts:[{icon:'☁️',label:'Sim, tenho Cloud/SaaS',val:'yes'},{icon:'➡️',label:'Nao',val:'no'}]},
+  {id:'cld-add',q:'Servicos Cloud e SaaS',hint:'IaaS, SaaS, CSPM, CNAPP, CIEM, CTI, IdP cloud.',type:'add',layer:'cloud',
+   fields:[{id:'name',label:'Nome',ph:'AWS-VPC-PROD'},{id:'type',label:'Tipo',type:'sel',opts:[['cloud','IaaS/PaaS'],['saas','SaaS'],['cspm','CSPM/CWPP'],['cnapp','CNAPP/DevSecOps'],['ciem','CIEM'],['cti','CTI Feed'],['idp','IdP Cloud']]},{id:'vendor',label:'Plataforma',ph:'AWS, Azure, SOCRadar...'}]},
+
+  {id:'done',q:'Pronto! Revise e gere.',hint:'',type:'final'}
+];
+
+function shouldSkip(s){
+  var hasSites = sites.length > 1;
+  if(s.id==='sites-cfg')  return !hasSites && sel['sites-q']!=='yes';
+  if(s.id==='isp')        return sel['net']!=='yes';
+  if(s.id==='ddos-add')   return sel['ddos-q']!=='yes';
+  if(s.id==='sase-add')   return sel['sase-q']!=='yes';
+  if(s.id==='ha')         return !allItems('borda').some(function(b){return b.ha==='yes';});
+  if(s.id==='waf-add')    return sel['waf-q']!=='yes';
+  if(s.id==='dmz-add')    return sel['dmz']!=='yes';
+  if(s.id==='nac-add')    return sel['nac-q']!=='yes';
+  if(s.id==='vlan-add')   return sel['vlan']!=='yes';
+  if(s.id==='pam-add')    return sel['pam-q']!=='yes';
+  if(s.id==='iam-add')    return sel['iam-q']!=='yes';
+  if(s.id==='edr-add')    return sel['edr-q']!=='yes';
+  if(s.id==='dlp-add')    return sel['dlp-q']!=='yes';
+  if(s.id==='deception-add') return sel['deception-q']!=='yes';
+  if(s.id==='vm-add')     return sel['vm-q']!=='yes';
+  if(s.id==='hsm-add')    return sel['hsm-q']!=='yes';
+  if(s.id==='siem-add')   return sel['siem-q']!=='yes';
+  if(s.id==='casb-add')   return sel['casb-q']!=='yes';
+  if(s.id==='usr-add')    return sel['users']!=='yes';
+  if(s.id==='ot-add')     return sel['ot']!=='yes';
+  if(s.id==='cld-add')    return sel['cloud']!=='yes';
+  return false;
+}
+
+// ── HELPERS ─────────────────────────────────────
+function allItems(layer){
+  // retorna todos os items de todos os sites para uma layer
+  var out = [];
+  sites.forEach(function(site){
+    var items = (site.items[layer]||[]);
+    items.forEach(function(it){ out.push(it); });
+  });
+  return out;
+}
+function siteItems(siteId, layer){
+  var site = sites.find(function(s){return s.id===siteId;});
+  if(!site) return [];
+  return site.items[layer]||[];
+}
+function addToSite(siteId, layer, item){
+  var site = sites.find(function(s){return s.id===siteId;});
+  if(!site) return;
+  if(!site.items[layer]) site.items[layer]=[];
+  site.items[layer].push(item);
+}
+function getSiteColor(siteId){
+  var s = sites.find(function(x){return x.id===siteId;});
+  if(!s) return '#888';
+  if(s.tipo==='matriz') return '#00c8ff';
+  var cols = ['#a3e635','#fb923c','#e879f9','#f87171','#fbbf24','#34d399','#818cf8'];
+  var idx = sites.indexOf(s)-1;
+  return cols[idx%cols.length];
+}
+
+// ── DOM HELPERS ─────────────────────────────────
+function el(tag,a,children){
+  var e=document.createElement(tag);
+  if(a) Object.keys(a).forEach(function(k){
+    if(k==='cls') e.className=a[k];
+    else if(k==='txt') e.textContent=a[k];
+    else if(k.indexOf('on')===0) e.addEventListener(k.slice(2),a[k]);
+    else e.setAttribute(k,a[k]);
+  });
+  if(children) children.forEach(function(c){if(c) e.appendChild(c);});
+  return e;
+}
+function div(cls,children){return el('div',{cls:cls},children);}
+
+// ── SITE CHECKBOXES ─────────────────────────────
+function buildSiteChecks(selectedSites){
+  // selectedSites = array of site ids already checked
+  var wrap = div('site-checks');
+  var label0 = div('');
+  label0.innerHTML = '<span style="font-size:9px;font-weight:700;color:var(--txm);letter-spacing:.6px;text-transform:uppercase;display:block;margin-bottom:4px">APLICA-SE A QUAL(IS) SITE(S)?</span>';
+  wrap.appendChild(label0);
+  sites.forEach(function(site){
+    var checked = !selectedSites || selectedSites.indexOf(site.id)>=0;
+    var chip = div('site-check'+(site.tipo!=='matriz'?' is-filial':'')+(checked?' on':''));
+    chip.dataset.siteid = site.id;
+    var dot = el('span',{});
+    dot.style.cssText='width:8px;height:8px;border-radius:50%;background:'+getSiteColor(site.id)+';flex-shrink:0;display:inline-block';
+    chip.appendChild(dot);
+    chip.appendChild(el('span',{txt:site.name}));
+    chip.onclick = function(){
+      chip.classList.toggle('on');
+    };
+    wrap.appendChild(chip);
+  });
+  return wrap;
+}
+function getCheckedSites(container){
+  var ids = [];
+  container.querySelectorAll('.site-check.on').forEach(function(c){
+    ids.push(c.dataset.siteid);
+  });
+  return ids;
+}
+
+// ── RENDER PROGRESS ─────────────────────────────
+function renderProgress(){
+  var pg=document.getElementById('progress');
+  pg.innerHTML='';
+  STEPS.forEach(function(s,i){
+    var d=document.createElement('div');
+    d.className='pd'+(i<curStep?' done':i===curStep?' active':'');
+    pg.appendChild(d);
+  });
+}
+
+// ── RENDER STEP ─────────────────────────────────
+function renderStep(){
+  renderProgress();
+  var step=STEPS[curStep];
+  var wrap=document.getElementById('step-wrap');
+  wrap.innerHTML='';
+  var sw=document.createElement('div');
+  sw.id='step-wrap';
+
+  sw.appendChild(el('div',{cls:'sq',txt:step.q}));
+  if(step.hint) sw.appendChild(el('div',{cls:'sh',txt:step.hint}));
+
+  // OPTIONS
+  if(step.type==='opts'){
+    var og=el('div',{cls:'og'+(step.opts.length<=2?' w1':'')});
+    step.opts.forEach(function(o){
+      var isSel=step.multi?(sel[step.id]||[]).indexOf(o.val)>=0:sel[step.id]===o.val;
+      var card=el('div',{cls:'oc'+(isSel?' sel':'')});
+      card.appendChild(el('div',{cls:'oi',txt:o.icon||'*'}));
+      var info=el('div',{});
+      info.appendChild(el('div',{cls:'ol',txt:o.label}));
+      if(o.sub) info.appendChild(el('div',{cls:'os',txt:o.sub}));
+      card.appendChild(info);
+      (function(sid,oval,multi){card.onclick=function(){pickOpt(sid,oval,multi);};})(step.id,o.val,!!step.multi);
+      og.appendChild(card);
+    });
+    sw.appendChild(og);
+  }
+
+  // FORM (projeto)
+  if(step.type==='form'){
+    [{id:'name',label:'Nome do Projeto',ph:'Topologia Rede Corporativa',bind:'name'},
+     {id:'client',label:'Empresa / Cliente',ph:'ACME Corp.',bind:'client'},
+     {id:'author',label:'Responsavel',ph:'Mariana BS - Be Safe',bind:'author'},
+     {id:'cls',label:'Classificacao',type:'sel',bind:'cls',
+      opts:[['Publico','Publico'],['Interno','Interno'],['Confidencial','Confidencial'],['Restrito','Restrito'],['TLP:AMBER','TLP:AMBER'],['TLP:RED','TLP:RED']]}
+    ].forEach(function(f){
+      var fg=el('div',{cls:'fg'});
+      fg.appendChild(el('label',{txt:f.label}));
+      if(f.type==='sel'){
+        var s=el('select',{});
+        f.opts.forEach(function(o){s.appendChild(el('option',{value:o[0],txt:o[1]}));});
+        s.value=proj[f.bind]||'Confidencial';
+        s.onchange=function(){proj[f.bind]=this.value;};
+        fg.appendChild(s);
+      } else {
+        var inp=el('input',{type:'text',placeholder:f.ph,value:proj[f.bind]||''});
+        inp.oninput=function(){proj[f.bind]=this.value;};
+        fg.appendChild(inp);
+      }
+      sw.appendChild(fg);
+    });
+  }
+
+  // SITES CONFIG
+  if(step.type==='sites'){
+    // List current sites (skip matriz)
+    var filiais=sites.filter(function(s){return s.tipo!=='matriz';});
+    if(filiais.length){
+      var ilist=div('item-list');
+      filiais.forEach(function(site,idx){
+        var row=div('item-row');
+        var dot=el('span',{});
+        dot.style.cssText='width:8px;height:8px;border-radius:50%;background:'+getSiteColor(site.id)+';flex-shrink:0;display:inline-block;margin-right:4px';
+        row.appendChild(dot);
+        var nm=el('span',{cls:'item-name',txt:site.name});
+        row.appendChild(nm);
+        var sub=el('span',{cls:'item-sub',txt:(site.cidade||'')+(site.wanLink?' | '+site.wanLink:'')});
+        row.appendChild(sub);
+        var d=el('button',{cls:'item-del',txt:'x'});
+        (function(s){d.onclick=function(){sites=sites.filter(function(x){return x.id!==s.id;});renderStep();};})(site);
+        row.appendChild(d);
+        ilist.appendChild(row);
+      });
+      sw.appendChild(ilist);
+    }
+    // Add form
+    var box=div('add-box');
+    [{id:'sname',label:'Nome do Site',ph:'Filial-SP / Loja-03 / DC-DR'},
+     {id:'scidade',label:'Cidade / Local',ph:'Sao Paulo, SP'},
+     {id:'stipo',label:'Tipo',type:'sel',opts:[['filial','Filial / Escritorio'],['loja','Loja / PDV'],['dc_dr','DC Secundario / DR'],['fabrica','Fabrica / Planta'],['home','Home Office']]},
+     {id:'slink',label:'Link WAN para Matriz',type:'sel',opts:[['mpls','MPLS'],['vpn_site','VPN Site-to-Site'],['sdwan','SD-WAN'],['internet','Internet Dedicada'],['4g','4G/5G Backup']]}
+    ].forEach(function(f){
+      var fg=el('div',{cls:'fg'});
+      fg.appendChild(el('label',{txt:f.label}));
+      if(f.type==='sel'){
+        var s=el('select',{id:'sf-'+f.id});
+        f.opts.forEach(function(o){s.appendChild(el('option',{value:o[0],txt:o[1]}));});
+        fg.appendChild(s);
+      } else {
+        fg.appendChild(el('input',{id:'sf-'+f.id,type:'text',placeholder:f.ph||''}));
+      }
+      box.appendChild(fg);
+    });
+    var addBtn=el('button',{cls:'btn btn-g',txt:'+ Adicionar Site'});
+    addBtn.style.cssText='width:100%;margin-top:4px;justify-content:center';
+    addBtn.onclick=function(){
+      var nm=document.getElementById('sf-sname').value.trim();
+      if(!nm){alert('Informe o nome do site.');return;}
+      var newSite={
+        id:'s'+(uid++), name:nm, tipo:'filial',
+        cidade:document.getElementById('sf-scidade').value.trim(),
+        tipoCat:document.getElementById('sf-stipo').value,
+        wanLink:document.getElementById('sf-slink').value,
+        items:{}
+      };
+      sites.push(newSite);
+      document.getElementById('sf-sname').value='';
+      document.getElementById('sf-scidade').value='';
+      renderStep();
+    };
+    box.appendChild(addBtn);
+    sw.appendChild(box);
+  }
+
+  // ADD (equipamentos)
+  if(step.type==='add'){
+    var layer=step.layer;
+    // Show ALL items across all sites
+    var allSiteItems=[];
+    sites.forEach(function(site){
+      (site.items[layer]||[]).forEach(function(it){
+        allSiteItems.push({site:site,item:it});
+      });
+    });
+    if(allSiteItems.length){
+      var ilist2=div('item-list');
+      allSiteItems.forEach(function(si){
+        var m=AMETA[si.item.type||'srv']||{col:'#888'};
+        var row=div('item-row');
+        var dot2=el('div',{cls:'item-dot'});
+        dot2.style.background=m.col;
+        row.appendChild(dot2);
+        var info2=el('div',{cls:'item-name',txt:si.item.name||''});
+        row.appendChild(info2);
+        // site badge
+        var sc=el('span',{cls:'site-badge'});
+        sc.style.cssText='background:'+getSiteColor(si.site.id)+'22;color:'+getSiteColor(si.site.id)+';border:1px solid '+getSiteColor(si.site.id)+'55';
+        sc.textContent=si.site.name;
+        row.appendChild(sc);
+        if(si.item.ip){var sub2=el('div',{cls:'item-sub',txt:si.item.ip+(si.item.vendor?' ['+si.item.vendor+']':'')});row.appendChild(sub2);}
+        var d2=el('button',{cls:'item-del',txt:'x'});
+        (function(site,item,lyr){d2.onclick=function(){
+          site.items[lyr]=site.items[lyr].filter(function(x){return x.id!==item.id;});
+          renderStep();
+        };})(si.site,si.item,layer);
+        row.appendChild(d2);
+        ilist2.appendChild(row);
+      });
+      sw.appendChild(ilist2);
+    }
+
+    // Add form with site checkboxes
+    var box2=div('add-box');
+    // Site selector
+    var siteChecksEl = buildSiteChecks(null); // all checked by default
+    box2.appendChild(siteChecksEl);
+    // Fields
+    step.fields.forEach(function(f){
+      var fg=el('div',{cls:'fg'});
+      fg.appendChild(el('label',{txt:f.label}));
+      if(f.type==='sel'){
+        var s2=el('select',{id:'af-'+f.id});
+        f.opts.forEach(function(o){s2.appendChild(el('option',{value:o[0],txt:o[1]}));});
+        fg.appendChild(s2);
+      } else {
+        var inp2=el('input',{id:'af-'+f.id,type:f.itype||'text',placeholder:f.ph||''});
+        if(f.def) inp2.value=f.def;
+        fg.appendChild(inp2);
+      }
+      box2.appendChild(fg);
+    });
+    var addBtn2=el('button',{cls:'btn btn-g',txt:'+ Adicionar'});
+    addBtn2.style.cssText='width:100%;margin-top:4px;justify-content:center';
+    (function(s,l,checksEl){
+      addBtn2.onclick=function(){
+        var nm2=document.getElementById('af-name');
+        if(nm2&&!nm2.value.trim()){alert('Preencha o nome.');return;}
+        var checkedSites=getCheckedSites(checksEl);
+        if(!checkedSites.length){alert('Selecione ao menos um site.');return;}
+        var item={};
+        s.fields.forEach(function(f){
+          var e2=document.getElementById('af-'+f.id);
+          if(e2) item[f.id]=e2.value;
+        });
+        item.id='i'+(uid++);
+        var m2=AMETA[item.type||s.defType||'srv']||{col:'#888'};
+        item.col=m2.col;
+        // Add to each selected site
+        checkedSites.forEach(function(sid){
+          var siteCopy=JSON.parse(JSON.stringify(item));
+          siteCopy.id='i'+(uid++);
+          addToSite(sid,l,siteCopy);
+        });
+        s.fields.forEach(function(f){
+          var e2=document.getElementById('af-'+f.id);
+          if(e2&&f.itype!=='color') e2.value=f.def||'';
+        });
+        renderStep();
+      };
+    })(step,layer,siteChecksEl);
+    box2.appendChild(addBtn2);
+    sw.appendChild(box2);
+  }
+
+  // FINAL
+  if(step.type==='final'){
+    sites.forEach(function(site){
+      var sec=div('sum-section');
+      var ttl=el('div',{cls:'sum-title'});
+      var dot3=el('span',{});
+      dot3.style.cssText='width:8px;height:8px;border-radius:50%;background:'+getSiteColor(site.id)+';display:inline-block;margin-right:5px';
+      ttl.appendChild(dot3);
+      ttl.appendChild(el('span',{txt:site.name+' ('+site.tipo+')'}));
+      sec.appendChild(ttl);
+      var chips=div('');
+      LAYER_DEFS.forEach(function(ld){
+        var its=site.items[ld.key]||[];
+        if(!its.length) return;
+        var chip=el('span',{cls:'sum-chip',txt:its.length+' '+ld.label});
+        chips.appendChild(chip);
+      });
+      sec.appendChild(chips);
+      sw.appendChild(sec);
+    });
+  }
+
+  // NAV
+  var nav=div('nav');
+  if(curStep>0) nav.appendChild(el('button',{cls:'nav-back',txt:'< Voltar',onclick:navBack}));
+  if(step.type==='final'){
+    nav.appendChild(el('button',{cls:'nav-gen',txt:'Gerar Topologia',onclick:generate}));
+  } else {
+    nav.appendChild(el('button',{cls:'nav-next',txt:'Proximo >',onclick:navNext}));
+  }
+  sw.appendChild(nav);
+  wrap.parentNode.replaceChild(sw,wrap);
+}
+
+function pickOpt(sid,val,multi){
+  if(multi){
+    if(!sel[sid]) sel[sid]=[];
+    var idx=sel[sid].indexOf(val);
+    if(idx>=0) sel[sid].splice(idx,1); else sel[sid].push(val);
+    renderStep();
+  } else {
+    sel[sid]=val;
+    if(sid==='sites-q' && val==='yes'){
+      curStep++; // go to sites-cfg
+      while(curStep<STEPS.length && shouldSkip(STEPS[curStep])) curStep++;
+      renderStep();
+    } else {
+      curStep++;
+      while(curStep<STEPS.length && shouldSkip(STEPS[curStep])) curStep++;
+      renderStep();
+    }
+  }
+}
+
+function navNext(){
+  curStep++;
+  while(curStep<STEPS.length && shouldSkip(STEPS[curStep])) curStep++;
+  renderStep();
+}
+function navBack(){
+  curStep--;
+  while(curStep>0 && shouldSkip(STEPS[curStep])) curStep--;
+  renderStep();
+}
+
+// ── SVG UTILS ───────────────────────────────────
+var NS='http://www.w3.org/2000/svg';
+function se(tag,a){
+  var e=document.createElementNS(NS,tag);
+  if(a) Object.keys(a).forEach(function(k){if(a[k]!=null) e.setAttribute(k,String(a[k]));});
+  return e;
+}
+function st(txt,x,y,a){
+  var e=document.createElementNS(NS,'text');
+  e.textContent=txt; e.setAttribute('x',x); e.setAttribute('y',y);
+  if(a) Object.keys(a).forEach(function(k){e.setAttribute(k,String(a[k]));});
+  return e;
+}
+function trunc(s,n){return s&&s.length>n?s.slice(0,n-1)+'...':(s||'');}
+
+// ── ICONS ───────────────────────────────────────
+function getIcon(type,c){
+  var I={
+    internet:'<circle cx="20" cy="20" r="14" fill="none" stroke="'+c+'" stroke-width="2"/><ellipse cx="20" cy="20" rx="7" ry="14" fill="none" stroke="'+c+'" stroke-width="1.3"/><line x1="6" y1="20" x2="34" y2="20" stroke="'+c+'" stroke-width="1.3"/><line x1="8" y1="13" x2="32" y2="13" stroke="'+c+'" stroke-width="1"/><line x1="8" y1="27" x2="32" y2="27" stroke="'+c+'" stroke-width="1"/>',
+    fw:'<rect x="3" y="7" width="34" height="26" rx="3" fill="none" stroke="'+c+'" stroke-width="2.2"/><line x1="3" y1="16" x2="37" y2="16" stroke="'+c+'" stroke-width="1.5"/><line x1="3" y1="25" x2="37" y2="25" stroke="'+c+'" stroke-width="1.5"/><rect x="8" y="19" width="5" height="5" rx="1" fill="'+c+'"/><rect x="17" y="19" width="5" height="5" rx="1" fill="'+c+'"/><rect x="26" y="19" width="5" height="5" rx="1" fill="'+c+'"/><rect x="8" y="10" width="5" height="5" rx="1" fill="'+c+'"/><rect x="17" y="10" width="5" height="5" rx="1" fill="'+c+'"/><rect x="26" y="10" width="5" height="5" rx="1" fill="'+c+'"/>',
+    router:'<circle cx="20" cy="20" r="14" fill="none" stroke="'+c+'" stroke-width="2.2"/><circle cx="20" cy="20" r="4.5" fill="'+c+'"/><line x1="20" y1="6" x2="20" y2="13.5" stroke="'+c+'" stroke-width="2.2"/><line x1="20" y1="26.5" x2="20" y2="34" stroke="'+c+'" stroke-width="2.2"/><line x1="6" y1="20" x2="13.5" y2="20" stroke="'+c+'" stroke-width="2.2"/><line x1="26.5" y1="20" x2="34" y2="20" stroke="'+c+'" stroke-width="2.2"/>',
+    vpn:'<circle cx="20" cy="20" r="14" fill="none" stroke="'+c+'" stroke-width="2"/><ellipse cx="20" cy="20" rx="7" ry="14" fill="none" stroke="'+c+'" stroke-width="1.5"/><line x1="6" y1="20" x2="34" y2="20" stroke="'+c+'" stroke-width="1.5"/>',
+    ids:'<polygon points="20,3 37,35 3,35" fill="none" stroke="'+c+'" stroke-width="2.2"/><line x1="20" y1="14" x2="20" y2="25" stroke="'+c+'" stroke-width="3"/><circle cx="20" cy="30" r="2" fill="'+c+'"/>',
+    waf:'<path d="M20 3 L35 12 L35 28 L20 37 L5 28 L5 12 Z" fill="none" stroke="'+c+'" stroke-width="2.2"/>',
+    ddos:'<polygon points="20,3 37,35 3,35" fill="none" stroke="'+c+'" stroke-width="2.2"/><line x1="20" y1="14" x2="20" y2="25" stroke="'+c+'" stroke-width="3"/><circle cx="20" cy="30" r="2" fill="'+c+'"/>',
+    ztna:'<circle cx="20" cy="20" r="14" fill="none" stroke="'+c+'" stroke-width="2"/><rect x="14" y="18" width="12" height="10" rx="2" fill="none" stroke="'+c+'" stroke-width="1.5"/><path d="M15 18 L15 14 Q15 10 20 10 Q25 10 25 14 L25 18" fill="none" stroke="'+c+'" stroke-width="1.5"/>',
+    sase:'<circle cx="20" cy="20" r="13" fill="none" stroke="'+c+'" stroke-width="2"/><path d="M9 20 Q20 10 31 20 Q20 30 9 20Z" fill="'+c+'" opacity=".2"/><circle cx="20" cy="20" r="4" fill="none" stroke="'+c+'" stroke-width="1.5"/>',
+    proxy:'<circle cx="20" cy="20" r="13" fill="none" stroke="'+c+'" stroke-width="2"/><line x1="20" y1="7" x2="20" y2="33" stroke="'+c+'" stroke-width="1.5"/><path d="M10 13 Q20 9 30 13" fill="none" stroke="'+c+'" stroke-width="1.5"/><path d="M10 27 Q20 31 30 27" fill="none" stroke="'+c+'" stroke-width="1.5"/>',
+    sdwan:'<rect x="5" y="10" width="30" height="20" rx="4" fill="none" stroke="'+c+'" stroke-width="2"/><path d="M5 20 Q20 10 35 20 Q20 30 5 20Z" fill="'+c+'" opacity=".2"/>',
+    lb:'<rect x="6" y="12" width="28" height="16" rx="3" fill="none" stroke="'+c+'" stroke-width="2"/><line x1="20" y1="12" x2="20" y2="28" stroke="'+c+'" stroke-width="1.5"/><line x1="6" y1="34" x2="14" y2="28" stroke="'+c+'" stroke-width="1.5"/><line x1="20" y1="28" x2="20" y2="34" stroke="'+c+'" stroke-width="1.5"/><line x1="26" y1="28" x2="34" y2="34" stroke="'+c+'" stroke-width="1.5"/>',
+    revproxy:'<circle cx="20" cy="20" r="13" fill="none" stroke="'+c+'" stroke-width="2"/><path d="M10 13 Q20 9 30 13" fill="none" stroke="'+c+'" stroke-width="1.5"/><path d="M10 27 Q20 31 30 27" fill="none" stroke="'+c+'" stroke-width="1.5"/>',
+    mailgw:'<rect x="5" y="8" width="30" height="24" rx="3" fill="none" stroke="'+c+'" stroke-width="2"/><path d="M5 12 L20 22 L35 12" fill="none" stroke="'+c+'" stroke-width="1.8"/>',
+    sw:'<rect x="4" y="11" width="32" height="18" rx="2.5" fill="none" stroke="'+c+'" stroke-width="2.2"/><circle cx="12" cy="20" r="2.5" fill="'+c+'"/><circle cx="20" cy="20" r="2.5" fill="'+c+'"/><circle cx="28" cy="20" r="2.5" fill="'+c+'"/><line x1="12" y1="29" x2="12" y2="36" stroke="'+c+'" stroke-width="1.8"/><line x1="20" y1="29" x2="20" y2="36" stroke="'+c+'" stroke-width="1.8"/><line x1="28" y1="29" x2="28" y2="36" stroke="'+c+'" stroke-width="1.8"/>',
+    sw3:'<rect x="4" y="11" width="32" height="18" rx="2.5" fill="none" stroke="'+c+'" stroke-width="2.2"/><circle cx="12" cy="20" r="2.5" fill="'+c+'"/><circle cx="20" cy="20" r="2.5" fill="'+c+'"/><circle cx="28" cy="20" r="2.5" fill="'+c+'"/><line x1="12" y1="29" x2="12" y2="36" stroke="'+c+'" stroke-width="1.8"/><line x1="20" y1="29" x2="20" y2="36" stroke="'+c+'" stroke-width="1.8"/><line x1="28" y1="29" x2="28" y2="36" stroke="'+c+'" stroke-width="1.8"/>',
+    nac:'<rect x="4" y="11" width="32" height="18" rx="2.5" fill="none" stroke="'+c+'" stroke-width="2.2"/><rect x="14" y="17" width="12" height="8" rx="1" fill="none" stroke="'+c+'" stroke-width="1.5"/>',
+    edr:'<polygon points="20,3 37,35 3,35" fill="none" stroke="'+c+'" stroke-width="2.2"/><line x1="20" y1="14" x2="20" y2="25" stroke="'+c+'" stroke-width="3"/><circle cx="20" cy="30" r="2" fill="'+c+'"/>',
+    dlp:'<rect x="8" y="8" width="24" height="24" rx="3" fill="none" stroke="'+c+'" stroke-width="2"/><path d="M14 20 L18 24 L26 16" stroke="'+c+'" stroke-width="2.5" fill="none" stroke-linecap="round"/>',
+    pam:'<circle cx="20" cy="14" r="8" fill="none" stroke="'+c+'" stroke-width="2"/><path d="M6 36 Q6 26 20 26 Q34 26 34 36" fill="none" stroke="'+c+'" stroke-width="2"/><rect x="16" y="12" width="8" height="6" rx="1" fill="'+c+'" opacity=".4"/>',
+    iam:'<rect x="10" y="14" width="20" height="14" rx="2" fill="none" stroke="'+c+'" stroke-width="2"/><path d="M14 14 L14 11 Q14 6 20 6 Q26 6 26 11 L26 14" fill="none" stroke="'+c+'" stroke-width="2"/><circle cx="20" cy="21" r="2.5" fill="'+c+'"/>',
+    auth:'<circle cx="20" cy="14" r="8" fill="none" stroke="'+c+'" stroke-width="2"/><path d="M6 36 Q6 26 20 26 Q34 26 34 36" fill="none" stroke="'+c+'" stroke-width="2"/><circle cx="20" cy="14" r="3" fill="'+c+'"/>',
+    deception:'<path d="M20 5 Q30 15 25 28 Q20 35 15 28 Q10 15 20 5Z" fill="none" stroke="'+c+'" stroke-width="2"/><circle cx="20" cy="20" r="3" fill="'+c+'" opacity=".5"/>',
+    casb:'<circle cx="20" cy="20" r="13" fill="none" stroke="'+c+'" stroke-width="2"/><path d="M9 20 Q20 10 31 20 Q20 30 9 20Z" fill="none" stroke="'+c+'" stroke-width="1.5"/>',
+    vm_sec:'<rect x="5" y="5" width="30" height="30" rx="3" fill="none" stroke="'+c+'" stroke-width="2"/><circle cx="20" cy="20" r="8" fill="none" stroke="'+c+'" stroke-width="1.5"/><circle cx="20" cy="20" r="3" fill="'+c+'"/>',
+    hsm:'<rect x="10" y="14" width="20" height="14" rx="2" fill="none" stroke="'+c+'" stroke-width="2"/><path d="M14 14 L14 11 Q14 6 20 6 Q26 6 26 11 L26 14" fill="none" stroke="'+c+'" stroke-width="2"/><circle cx="20" cy="21" r="2.5" fill="'+c+'"/>',
+    siem:'<rect x="5" y="5" width="30" height="30" rx="3" fill="none" stroke="'+c+'" stroke-width="2"/><polyline points="9,27 14,18 18,22 22,13 27,20 31,16" fill="none" stroke="'+c+'" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>',
+    ndr:'<rect x="5" y="5" width="30" height="30" rx="3" fill="none" stroke="'+c+'" stroke-width="2"/><path d="M10 20 Q15 10 20 20 Q25 30 30 20" fill="none" stroke="'+c+'" stroke-width="2.2" stroke-linecap="round"/>',
+    ueba:'<rect x="5" y="5" width="30" height="30" rx="3" fill="none" stroke="'+c+'" stroke-width="2"/><circle cx="15" cy="22" r="4" fill="none" stroke="'+c+'" stroke-width="1.5"/><circle cx="25" cy="18" r="4" fill="none" stroke="'+c+'" stroke-width="1.5"/>',
+    cti:'<circle cx="20" cy="20" r="13" fill="none" stroke="'+c+'" stroke-width="2"/><line x1="20" y1="10" x2="20" y2="20" stroke="'+c+'" stroke-width="2.5"/><line x1="20" y1="20" x2="26" y2="26" stroke="'+c+'" stroke-width="2"/><circle cx="20" cy="20" r="2" fill="'+c+'"/>',
+    soc:'<rect x="5" y="5" width="30" height="30" rx="3" fill="none" stroke="'+c+'" stroke-width="2"/><rect x="9" y="9" width="10" height="10" rx="1" fill="'+c+'" opacity=".2"/><rect x="21" y="9" width="10" height="10" rx="1" fill="'+c+'" opacity=".2"/><rect x="9" y="21" width="22" height="10" rx="1" fill="'+c+'" opacity=".2"/>',
+    srv:'<rect x="8" y="5" width="24" height="9" rx="2" fill="none" stroke="'+c+'" stroke-width="2"/><rect x="8" y="16" width="24" height="9" rx="2" fill="none" stroke="'+c+'" stroke-width="2"/><rect x="8" y="27" width="24" height="9" rx="2" fill="none" stroke="'+c+'" stroke-width="2"/><circle cx="28" cy="9.5" r="1.5" fill="'+c+'"/><circle cx="28" cy="20.5" r="1.5" fill="'+c+'"/><circle cx="28" cy="31.5" r="1.5" fill="'+c+'"/>',
+    vm:'<rect x="6" y="8" width="28" height="24" rx="3" fill="none" stroke="'+c+'" stroke-width="2"/><line x1="6" y1="15" x2="34" y2="15" stroke="'+c+'" stroke-width="1"/>',
+    ds:'<ellipse cx="20" cy="11" rx="13" ry="5.5" fill="none" stroke="'+c+'" stroke-width="2"/><path d="M7 11 Q7 19.5 20 19.5 Q33 19.5 33 11" fill="none" stroke="'+c+'" stroke-width="2"/><path d="M7 19.5 Q7 28 20 28 Q33 28 33 19.5" fill="none" stroke="'+c+'" stroke-width="2"/><line x1="7" y1="11" x2="7" y2="28" stroke="'+c+'" stroke-width="2"/><line x1="33" y1="11" x2="33" y2="28" stroke="'+c+'" stroke-width="2"/>',
+    nas:'<rect x="5" y="8" width="30" height="24" rx="3" fill="none" stroke="'+c+'" stroke-width="2"/><line x1="5" y1="16" x2="35" y2="16" stroke="'+c+'" stroke-width="1.2"/><line x1="5" y1="24" x2="35" y2="24" stroke="'+c+'" stroke-width="1.2"/><circle cx="30" cy="12" r="1.5" fill="'+c+'"/><circle cx="30" cy="20" r="1.5" fill="'+c+'"/>',
+    backup:'<rect x="8" y="8" width="24" height="24" rx="3" fill="none" stroke="'+c+'" stroke-width="2"/><path d="M20 14 L20 22 M16 19 L20 23 L24 19" stroke="'+c+'" stroke-width="2" fill="none" stroke-linecap="round"/>',
+    ep:'<rect x="7" y="7" width="26" height="20" rx="2" fill="none" stroke="'+c+'" stroke-width="2"/><line x1="13" y1="31" x2="27" y2="31" stroke="'+c+'" stroke-width="2"/><line x1="20" y1="27" x2="20" y2="31" stroke="'+c+'" stroke-width="2"/>',
+    ap:'<circle cx="20" cy="24" r="8" fill="none" stroke="'+c+'" stroke-width="2"/><path d="M8 16 Q20 4 32 16" fill="none" stroke="'+c+'" stroke-width="2"/><path d="M12 20 Q20 10 28 20" fill="none" stroke="'+c+'" stroke-width="1.5"/><circle cx="20" cy="24" r="2.5" fill="'+c+'"/><line x1="20" y1="32" x2="20" y2="38" stroke="'+c+'" stroke-width="2"/>',
+    mobile:'<rect x="13" y="4" width="14" height="32" rx="3" fill="none" stroke="'+c+'" stroke-width="2"/><circle cx="20" cy="32" r="1.5" fill="'+c+'"/>',
+    voip:'<path d="M10 14 Q10 8 20 8 Q30 8 30 14 L30 22 Q30 28 24 30 L20 32 L16 30 Q10 28 10 22Z" fill="none" stroke="'+c+'" stroke-width="2"/>',
+    plc:'<rect x="6" y="6" width="28" height="28" rx="3" fill="none" stroke="'+c+'" stroke-width="2"/><line x1="6" y1="16" x2="34" y2="16" stroke="'+c+'" stroke-width="1.5"/><circle cx="12" cy="23" r="2" fill="'+c+'"/><circle cx="20" cy="23" r="2" fill="'+c+'"/><circle cx="28" cy="23" r="2" fill="'+c+'"/>',
+    hmi:'<rect x="5" y="8" width="30" height="22" rx="3" fill="none" stroke="'+c+'" stroke-width="2"/><rect x="9" y="12" width="22" height="14" rx="1" fill="'+c+'" opacity=".12"/><line x1="15" y1="32" x2="25" y2="32" stroke="'+c+'" stroke-width="2"/>',
+    scada:'<rect x="4" y="8" width="32" height="24" rx="3" fill="none" stroke="'+c+'" stroke-width="2"/><polyline points="8,24 12,18 16,22 20,14 24,20 28,16 32,20" fill="none" stroke="'+c+'" stroke-width="1.8" stroke-linecap="round"/>',
+    ot_fw:'<rect x="3" y="7" width="34" height="26" rx="3" fill="none" stroke="'+c+'" stroke-width="2.2"/><line x1="3" y1="16" x2="37" y2="16" stroke="'+c+'" stroke-width="1.5"/><line x1="3" y1="25" x2="37" y2="25" stroke="'+c+'" stroke-width="1.5"/>',
+    ot_ids:'<polygon points="20,3 37,35 3,35" fill="none" stroke="'+c+'" stroke-width="2.2"/><line x1="20" y1="14" x2="20" y2="25" stroke="'+c+'" stroke-width="3"/><circle cx="20" cy="30" r="2" fill="'+c+'"/>',
+    cloud:'<path d="M30 28 a9 9 0 0 0 0-18 9 9 0 0 0-16-4.5 7 7 0 1 0-1 13.5Z" fill="none" stroke="'+c+'" stroke-width="2.2"/>',
+    saas:'<path d="M28 26 a8 8 0 0 0 0-16 8 8 0 0 0-14.5-3.5 6 6 0 1 0-1 11Z" fill="none" stroke="'+c+'" stroke-width="2"/>',
+    idp:'<rect x="10" y="14" width="20" height="14" rx="2" fill="none" stroke="'+c+'" stroke-width="2"/><path d="M14 14 L14 11 Q14 6 20 6 Q26 6 26 11 L26 14" fill="none" stroke="'+c+'" stroke-width="2"/><circle cx="20" cy="21" r="2.5" fill="'+c+'"/>',
+    cspm:'<path d="M30 28 a9 9 0 0 0 0-18 9 9 0 0 0-16-4.5 7 7 0 1 0-1 13.5Z" fill="none" stroke="'+c+'" stroke-width="2"/><circle cx="20" cy="22" r="4" fill="none" stroke="'+c+'" stroke-width="1.5"/>',
+    cnapp:'<path d="M28 26 a8 8 0 0 0 0-16 8 8 0 0 0-14.5-3.5 6 6 0 1 0-1 11Z" fill="none" stroke="'+c+'" stroke-width="2"/><path d="M16 22 L20 18 L24 22" stroke="'+c+'" stroke-width="1.5" fill="none"/>',
+    ciem:'<path d="M30 28 a9 9 0 0 0 0-18 9 9 0 0 0-16-4.5 7 7 0 1 0-1 13.5Z" fill="none" stroke="'+c+'" stroke-width="2"/><rect x="15" y="18" width="10" height="8" rx="1" fill="none" stroke="'+c+'" stroke-width="1.5"/>',
+    vlan:'<rect x="5" y="10" width="30" height="20" rx="4" fill="none" stroke="'+c+'" stroke-width="2"/><line x1="5" y1="20" x2="35" y2="20" stroke="'+c+'" stroke-width="1"/>',
+    hsm2:'<rect x="10" y="14" width="20" height="14" rx="2" fill="none" stroke="'+c+'" stroke-width="2"/><path d="M14 14 L14 11 Q14 6 20 6 Q26 6 26 11 L26 14" fill="none" stroke="'+c+'" stroke-width="2"/>',
+  };
+  return I[type]||I.srv;
+}
+
+// ── GENERATE ────────────────────────────────────
+function generate(){
+  var svg=document.getElementById('svg');
+  svg.innerHTML='';
+  document.getElementById('empty-msg').style.display='none';
+
+  var TW=svg.parentElement.clientWidth;
+  var TH=svg.parentElement.clientHeight;
+  svg.setAttribute('viewBox','0 0 '+TW+' '+TH);
+  svg.setAttribute('width',TW); svg.setAttribute('height',TH);
+
+  // Collect active layers per site
+  var activeSites=sites.filter(function(site){
+    return LAYER_DEFS.some(function(ld){return (site.items[ld.key]||[]).length>0;});
+  });
+  if(!activeSites.length){alert('Adicione equipamentos antes de gerar.');return;}
+
+  var nSites=activeSites.length;
+
+  // Layout: sites side by side horizontally
+  var MARGIN=12, TOP=44, BOT=18, SITE_GAP=20;
+  var siteW=(TW - MARGIN*2 - SITE_GAP*(nSites-1)) / nSites;
+  var siteH=TH - TOP - BOT;
+
+  // Defs
+  var defs=document.createElementNS(NS,'defs');
+  // arrow marker
+  var me=se('marker',{id:'arr',markerWidth:'8',markerHeight:'8',refX:'7',refY:'3',orient:'auto'});
+  me.appendChild(se('polygon',{points:'0 0, 8 3, 0 6',fill:'rgba(0,200,255,.7)'}));
+  defs.appendChild(me);
+  // HA marker
+  var mha=se('marker',{id:'arr-ha',markerWidth:'8',markerHeight:'8',refX:'7',refY:'3',orient:'auto'});
+  mha.appendChild(se('polygon',{points:'0 0, 8 3, 0 6',fill:'#facc15'}));
+  defs.appendChild(mha);
+  // WAN markers per style
+  Object.keys(WAN_STYLES).forEach(function(k){
+    var ws=WAN_STYLES[k];
+    var mw=se('marker',{id:'arr-wan-'+k,markerWidth:'8',markerHeight:'8',refX:'7',refY:'3',orient:'auto'});
+    mw.appendChild(se('polygon',{points:'0 0, 8 3, 0 6',fill:ws.col}));
+    defs.appendChild(mw);
+  });
+  // log marker
+  var ml=se('marker',{id:'arr-log',markerWidth:'7',markerHeight:'7',refX:'6',refY:'2.5',orient:'auto'});
+  ml.appendChild(se('polygon',{points:'0 0, 7 2.5, 0 5',fill:'#ffb800',opacity:'.7'}));
+  defs.appendChild(ml);
+  svg.appendChild(defs);
+
+  var root=document.createElementNS(NS,'g');
+  root.setAttribute('id','root');
+  svg.appendChild(root);
+
+  // Grid
+  var gg=document.createElementNS(NS,'g');
+  for(var gx=0;gx<TW*2;gx+=30){var gl=se('line',{'x1':gx-TW,'y1':-TH,'x2':gx-TW,'y2':TH*2,stroke:'rgba(255,255,255,.013)','stroke-width':'1'});gg.appendChild(gl);}
+  for(var gy=0;gy<TH*2;gy+=30){var gl2=se('line',{'x1':-TW,'y1':gy-TH,'x2':TW*2,'y2':gy-TH,stroke:'rgba(255,255,255,.013)','stroke-width':'1'});gg.appendChild(gl2);}
+  root.appendChild(gg);
+
+  var edgeG=document.createElementNS(NS,'g'); root.appendChild(edgeG);
+  var nodeG=document.createElementNS(NS,'g'); root.appendChild(nodeG);
+  var lblG=document.createElementNS(NS,'g');  root.appendChild(lblG);
+
+  // Store node positions: siteId+layerKey+itemId -> {cx,cy}
+  var pos={};
+  var siteCorePts={}; // siteId -> first core-ish node {cx,cy}
+
+  activeSites.forEach(function(site,si){
+    var sx=MARGIN + si*(siteW+SITE_GAP);
+    var siteCol=getSiteColor(site.id);
+
+    // Site outer box
+    nodeG.appendChild(se('rect',{x:sx,y:TOP,width:siteW,height:siteH,rx:'8',
+      fill:site.tipo==='matriz'?'rgba(0,200,255,.03)':'rgba(163,230,53,.03)',
+      stroke:siteCol,'stroke-width':'2','stroke-dasharray':site.tipo==='matriz'?'':'8,4',opacity:'0.5'}));
+
+    // Site label
+    nodeG.appendChild(st(site.name,sx+siteW/2,TOP+14,{'text-anchor':'middle',fill:siteCol,'font-size':'10','font-family':'Rajdhani,sans-serif','font-weight':'700','letter-spacing':'2'}));
+    if(site.cidade) nodeG.appendChild(st(site.cidade,sx+siteW/2,TOP+24,{'text-anchor':'middle',fill:'#3a5070','font-size':'7.5','font-family':'Share Tech Mono,monospace'}));
+
+    // Active layers for this site
+    var siteLayers=LAYER_DEFS.filter(function(ld){return (site.items[ld.key]||[]).length>0;});
+    var nLayers=siteLayers.length;
+    var LHDR=site.cidade?22:16;
+    var LGAP=6;
+    var layH=(siteH-28-LGAP*(nLayers-1))/Math.max(nLayers,1);
+
+    siteLayers.forEach(function(ld,li){
+      var items=site.items[ld.key]||[];
+      var n=items.length;
+      var ly=TOP+28+li*(layH+LGAP);
+
+      // Layer box
+      nodeG.appendChild(se('rect',{x:sx+4,y:ly,width:siteW-8,height:layH,rx:'6',fill:ld.col,stroke:ld.brd,'stroke-width':'1','stroke-dasharray':'5,3'}));
+      nodeG.appendChild(se('line',{x1:sx+14,y1:ly,x2:sx+siteW-14,y2:ly,stroke:ld.brd,'stroke-width':'2'}));
+      nodeG.appendChild(st(ld.label,sx+siteW/2,ly+13,{'text-anchor':'middle',fill:ld.brd,'font-size':'8','font-family':'Rajdhani,sans-serif','font-weight':'700','letter-spacing':'2','opacity':'0.7'}));
+
+      // Nodes
+      var innerW=siteW-16;
+      var innerH=layH-16;
+      var slotW=innerW/Math.max(n,1);
+      var slotH=innerH;
+      var NR=Math.max(10,Math.min(22,slotW*0.38,slotH*0.42));
+      var fSz=Math.max(6,Math.min(9,NR*0.42));
+
+      items.forEach(function(item,ni){
+        var cx=sx+8+ni*slotW+slotW/2;
+        var cy=ly+16+slotH/2;
+        var key=site.id+'_'+ld.key+'_'+item.id;
+        pos[key]={cx:cx,cy:cy};
+        if(!siteCorePts[site.id]) siteCorePts[site.id]={cx:cx,cy:cy};
+
+        var m=AMETA[item.type||'srv']||{col:'#888'};
+        var col=item.col||m.col;
+
+        nodeG.appendChild(se('circle',{cx:cx,cy:cy,r:NR+4,fill:'none',stroke:col,'stroke-width':'1',opacity:'0.12'}));
+        nodeG.appendChild(se('circle',{cx:cx,cy:cy,r:NR,fill:'#0d1120',stroke:col,'stroke-width':Math.max(1.2,NR*0.09)}));
+        nodeG.appendChild(se('circle',{cx:cx,cy:cy,r:NR-2,fill:col,opacity:'0.05'}));
+
+        var sc2=NR/22;
+        var ig=document.createElementNS(NS,'g');
+        ig.setAttribute('transform','translate('+(cx-NR*0.82)+','+(cy-NR*0.82)+') scale('+sc2+')');
+        ig.innerHTML=getIcon(item.type||'srv',col);
+        nodeG.appendChild(ig);
+
+        var nameY=cy+NR+fSz+3;
+        var maxC=Math.max(5,Math.floor(slotW/(fSz*0.58)));
+        nodeG.appendChild(st(trunc(item.name||'',maxC),cx,nameY,{'text-anchor':'middle',fill:'#c8d8f0','font-size':fSz,'font-family':'Exo 2,sans-serif','font-weight':'700'}));
+        if(item.ip&&slotH>65) nodeG.appendChild(st(item.ip,cx,nameY+fSz+1,{'text-anchor':'middle',fill:'#2a4060','font-size':Math.max(6,fSz-1.5),'font-family':'Share Tech Mono,monospace'}));
+
+        // HA badge
+        if(item.ha==='yes'){
+          var haMode=sel['ha']||'none';
+          var isPassive=(haMode==='ap'&&ni>0&&items[ni-1]&&items[ni-1].type===item.type);
+          var bCol=isPassive?'#94a3b8':'#facc15';
+          var bTxt=isPassive?'STBY':(haMode==='aa'?'AA':'ACTV');
+          nodeG.appendChild(st(bTxt,cx+NR,cy-NR+7,{fill:bCol,'font-size':'7','font-family':'Rajdhani,sans-serif','font-weight':'700'}));
+          var partner=items[ni+1];
+          if(partner&&partner.type===item.type){
+            var p2cx=sx+8+(ni+1)*slotW+slotW/2;
+            edgeG.appendChild(se('path',{d:'M'+cx+','+(cy-NR-2)+' Q'+((cx+p2cx)/2)+','+(cy-NR-28)+' '+p2cx+','+(cy-NR-2),
+              fill:'none',stroke:'#facc15','stroke-width':'2','stroke-dasharray':'8,3',opacity:'0.85','marker-end':'url(#arr-ha)'}));
+            var hW=haMode==='ap'?52:44, hX=(cx+p2cx)/2, hY=cy-NR-32;
+            lblG.appendChild(se('rect',{'x':hX-hW/2,'y':hY-7,'width':hW,'height':12,rx:'3',fill:'#07090f',opacity:'0.95'}));
+            lblG.appendChild(st(haMode==='ap'?'ACTV -- STBY':'AA -- AA',hX,hY+3,{'text-anchor':'middle',fill:'#facc15','font-size':'7','font-family':'Share Tech Mono,monospace','font-weight':'700'}));
+          }
+        }
+      });
+
+      // Intra-layer sw3<->sw routed link
+      if(ld.key==='core'){
+        var sw3s=[],sws2=[];
+        items.forEach(function(it,ni){
+          var k2=site.id+'_core_'+it.id;
+          if(it.type==='sw3'&&pos[k2]) sw3s.push(pos[k2]);
+          else if(it.type==='sw'&&pos[k2]) sws2.push(pos[k2]);
+        });
+        sw3s.forEach(function(p3){ sws2.forEach(function(ps){
+          edgeG.appendChild(se('line',{'x1':p3.cx,'y1':p3.cy,'x2':ps.cx,'y2':ps.cy,fill:'none',stroke:'#fb923c','stroke-width':'2',opacity:'0.6','marker-end':'url(#arr)'}));
+          var rmx=(p3.cx+ps.cx)/2,rmy=(p3.cy+ps.cy)/2;
+          lblG.appendChild(se('rect',{'x':rmx-22,'y':rmy-7,'width':44,'height':12,rx:'3',fill:'#07090f',opacity:'0.92'}));
+          lblG.appendChild(st('L3 Routed',rmx,rmy+3,{'text-anchor':'middle',fill:'#fb923c','font-size':'7','font-family':'Share Tech Mono,monospace','font-weight':'700'}));
+        });});
+      }
+
+      // Inter-layer links (vertical, dentro do site)
+      if(li>0){
+        var prevLd=siteLayers[li-1];
+        var nodesA=prevLd?(site.items[prevLd.key]||[]):[];
+        var nodesB=items;
+        if(nodesA.length&&nodesB.length){
+          // HA AP: only first active node connects down
+          var haMode2=sel['ha']||'none';
+          var isBordaAP=(prevLd&&prevLd.key==='borda'&&haMode2==='ap'&&nodesA.length>1);
+          var srcNodes=isBordaAP?[nodesA[0]]:nodesA;
+          var connects=[];
+          if(srcNodes.length===1){
+            nodesB.forEach(function(b){connects.push({a:srcNodes[0],b:b});});
+          } else if(nodesB.length===1){
+            srcNodes.forEach(function(a){connects.push({a:a,b:nodesB[0]});});
+          } else {
+            var mp=Math.max(srcNodes.length,nodesB.length);
+            for(var pi=0;pi<mp;pi++){
+              var na=srcNodes[Math.min(pi,srcNodes.length-1)];
+              var nb2=nodesB[Math.min(pi,nodesB.length-1)];
+              var dup=false;
+              connects.forEach(function(co){if(co.a===na&&co.b===nb2)dup=true;});
+              if(!dup)connects.push({a:na,b:nb2});
+            }
+          }
+          connects.forEach(function(co){
+            var k1=site.id+'_'+prevLd.key+'_'+co.a.id;
+            var k2b=site.id+'_'+ld.key+'_'+co.b.id;
+            var p1=pos[k1],p2=pos[k2b];
+            if(!p1||!p2)return;
+            edgeG.appendChild(se('line',{'x1':p1.cx,'y1':p1.cy,'x2':p2.cx,'y2':p2.cy,
+              fill:'none',stroke:ld.brd,'stroke-width':'1.5',opacity:'0.55','marker-end':'url(#arr)'}));
+          });
+        }
+      }
+    });
+
+    // SIEM log flows for this site
+    var collectors=[];
+    (site.items['servicos']||[]).forEach(function(it){
+      if(['siem','ndr','soar','soc','ueba'].indexOf(it.type)>=0){
+        var ck=site.id+'_servicos_'+it.id;
+        if(pos[ck]) collectors.push({item:it,p:pos[ck]});
+      }
+    });
+    if(collectors.length){
+      var sp2=collectors[0].p;
+      var srcCols={fw:'#ff6b35',router:'#fb923c',vpn:'#e879f9',ids:'#ff3b5c',waf:'#f59e0b',
+        ddos:'#ef4444',sw:'#00c8ff',sw3:'#22d3ee',nac:'#0ea5e9',srv:'#a855f7',ds:'#ffb800',
+        nas:'#fde68a',vm:'#c084fc',edr:'#f43f5e',dlp:'#f87171',pam:'#c084fc',iam:'#818cf8',
+        auth:'#818cf8',ep:'#00ff9d',ap:'#67e8f9',mobile:'#4ade80',voip:'#86efac',
+        plc:'#ffb800',hmi:'#fcd34d',scada:'#fde68a',ot_fw:'#ff6b35',ot_ids:'#ff3b5c',
+        cloud:'#38bdf8',saas:'#7dd3fc',casb:'#e879f9'};
+      var allSrcItems=[];
+      LAYER_DEFS.forEach(function(ld2){
+        (site.items[ld2.key]||[]).forEach(function(it){
+          var isCol=collectors.some(function(col){return col.item.id===it.id;});
+          if(!isCol){var k=site.id+'_'+ld2.key+'_'+it.id;if(pos[k])allSrcItems.push({it:it,p:pos[k]});}
+        });
+      });
+      allSrcItems.forEach(function(src,sidx){
+        var p1=src.p;
+        var dx2=sp2.cx-p1.cx,dy2=sp2.cy-p1.cy,dist=Math.sqrt(dx2*dx2+dy2*dy2)||1;
+        var side=(sidx%2===0)?1:-1;
+        var offx=(dy2/dist)*25*side,offy=(-dx2/dist)*25*side;
+        var lc=srcCols[src.it.type]||'#ffb800';
+        edgeG.appendChild(se('path',{d:'M'+p1.cx+','+p1.cy+' Q'+((p1.cx+sp2.cx)/2+offx)+','+((p1.cy+sp2.cy)/2+offy)+' '+sp2.cx+','+sp2.cy,
+          fill:'none',stroke:lc,'stroke-width':'1','stroke-dasharray':'2,5',opacity:'0.3','marker-end':'url(#arr-log)'}));
+      });
+    }
+  });
+
+  // ── WAN LINKS between filiais and matriz ──
+  var matrizSite=sites.find(function(s){return s.tipo==='matriz';});
+  var matrizPt=matrizSite?siteCorePts[matrizSite.id]:null;
+  if(matrizPt){
+    sites.filter(function(s){return s.tipo!=='matriz';}).forEach(function(filial){
+      var filPt=siteCorePts[filial.id];
+      if(!filPt) return;
+      var ws=WAN_STYLES[filial.wanLink||'vpn_site']||WAN_STYLES['vpn_site'];
+      var wLabel={mpls:'MPLS',vpn_site:'VPN S2S',sdwan:'SD-WAN',internet:'Internet','4g':'4G/5G'}[filial.wanLink||'vpn_site']||'WAN';
+      // Curved line between sites
+      var mx2=(matrizPt.cx+filPt.cx)/2;
+      var my2=TOP+10; // arc above everything
+      var wanPath=se('path',{d:'M'+filPt.cx+','+filPt.cy+' Q'+mx2+','+my2+' '+matrizPt.cx+','+matrizPt.cy,
+        fill:'none',stroke:ws.col,'stroke-width':'2.2',opacity:'0.7','marker-end':'url(#arr-wan-'+(filial.wanLink||'vpn_site')+')'});
+      if(ws.dash) wanPath.setAttribute('stroke-dasharray',ws.dash);
+      edgeG.appendChild(wanPath);
+      // WAN label
+      var wlx=mx2,wly=my2-8;
+      var wlw=wLabel.length*5.5+8;
+      lblG.appendChild(se('rect',{'x':wlx-wlw/2,'y':wly-8,'width':wlw,'height':12,rx:'3',fill:'#07090f',opacity:'0.95'}));
+      lblG.appendChild(st(wLabel+' | '+filial.name,wlx,wly+2,{'text-anchor':'middle',fill:ws.col,'font-size':'7.5','font-family':'Share Tech Mono,monospace','font-weight':'700'}));
+    });
+  }
+
+  // ── TITLE / FOOTER ──
+  var tg=document.createElementNS(NS,'g');
+  tg.appendChild(st(proj.name||'Topologia de Rede',14,18,{fill:'#00c8ff','font-size':'13','font-family':'Rajdhani,sans-serif','font-weight':'700','letter-spacing':'2'}));
+  var sub=[proj.client].filter(Boolean).join(' | ');
+  if(sub) tg.appendChild(st(sub,14,30,{fill:'#253650','font-size':'8.5','font-family':'Share Tech Mono,monospace'}));
+  svg.appendChild(tg);
+  svg.appendChild(st('NETTOPO | Mariana BS - Be Safe | '+proj.cls+' | '+(new Date().toLocaleDateString('pt-BR')),
+    TW/2,TH-4,{'text-anchor':'middle',fill:'#1a2d45','font-size':'7.5','font-family':'Share Tech Mono,monospace'}));
+
+  // ── LEGEND ──
+  var usedTypes=[];
+  sites.forEach(function(site){
+    LAYER_DEFS.forEach(function(ld){
+      (site.items[ld.key]||[]).forEach(function(it){
+        if(it.type&&usedTypes.indexOf(it.type)<0)usedTypes.push(it.type);
+      });
+    });
+  });
+  var LEG_W=148,LEG_H=16+usedTypes.length*13+8;
+  var LX=TW-LEG_W-10,LY=TH-LEG_H-10;
+  var lg2=document.createElementNS(NS,'g');
+  lg2.appendChild(se('rect',{x:LX,y:LY,width:LEG_W,height:LEG_H,rx:'5',fill:'rgba(7,9,15,.96)',stroke:'#1e2d4a','stroke-width':'1'}));
+  lg2.appendChild(st('LEGENDA',LX+8,LY+12,{fill:'#00c8ff','font-size':'9','font-family':'Rajdhani,sans-serif','font-weight':'700','letter-spacing':'2'}));
+  usedTypes.forEach(function(t,i){
+    var m=AMETA[t]||{col:'#888',label:t};
+    var iy=LY+20+i*13;
+    lg2.appendChild(se('rect',{x:LX+8,y:iy-7,width:8,height:8,rx:'2',fill:m.col}));
+    lg2.appendChild(st(m.label,LX+21,iy,{fill:'#6a8aaa','font-size':'8','font-family':'Exo 2,sans-serif'}));
+  });
+  svg.appendChild(lg2);
+
+  resetV();
+}
+
+// ── PAN/ZOOM ─────────────────────────────────────
+function applyT(){var r=document.getElementById('root');if(r)r.setAttribute('transform','translate('+vx+','+vy+') scale('+vs+')');}
+function zIn(){vs=Math.min(5,vs*1.2);applyT();}
+function zOut(){vs=Math.max(.1,vs*.85);applyT();}
+function resetV(){vx=0;vy=0;vs=1;applyT();}
+var svgEl=document.getElementById('svg');
+svgEl.addEventListener('mousedown',function(e){drag=true;lx=e.clientX;ly=e.clientY;svgEl.style.cursor='grabbing';});
+window.addEventListener('mousemove',function(e){if(!drag)return;vx+=e.clientX-lx;vy+=e.clientY-ly;lx=e.clientX;ly=e.clientY;applyT();});
+window.addEventListener('mouseup',function(){drag=false;svgEl.style.cursor='grab';});
+svgEl.addEventListener('wheel',function(e){e.preventDefault();vs=Math.min(5,Math.max(.1,vs*(e.deltaY>0?.9:1.1)));applyT();},{passive:false});
+
+// ── EXPORT ───────────────────────────────────────
+function toCanvas(cb){
+  resetV();
+  var s2=document.getElementById('svg');
+  var W2=s2.parentElement.clientWidth,H2=s2.parentElement.clientHeight;
+  var str=new XMLSerializer().serializeToString(s2);
+  var blob=new Blob([str],{type:'image/svg+xml;charset=utf-8'});
+  var url=URL.createObjectURL(blob);
+  var img=new Image();
+  img.onload=function(){
+    var c=document.createElement('canvas');c.width=W2*2;c.height=H2*2;
+    var ctx=c.getContext('2d');ctx.fillStyle='#07090f';ctx.fillRect(0,0,c.width,c.height);
+    ctx.scale(2,2);ctx.drawImage(img,0,0);URL.revokeObjectURL(url);cb(c,W2,H2);
+  };
+  img.src=url;
+}
+function exportPNG(){
+  toCanvas(function(c){c.toBlob(function(b){var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='topologia.png';a.click();},'image/png');});
+}
+function exportPDF(){
+  toCanvas(function(c,W2,H2){var pdf=new window.jspdf.jsPDF({orientation:'landscape',unit:'px',format:[W2,H2]});pdf.addImage(c.toDataURL('image/png'),'PNG',0,0,W2,H2);pdf.save('topologia.pdf');});
+}
+function resetAll(){
+  if(!confirm('Reiniciar tudo?'))return;
+  sites=[{id:'s0',name:'Matriz',tipo:'matriz',wanLink:'',items:{}}];
+  Object.keys(sel).forEach(function(k){delete sel[k];});
+  proj={name:'Topologia de Rede',client:'',author:'',cls:'Confidencial'};
+  curStep=0;uid=1;
+  document.getElementById('svg').innerHTML='';
+  document.getElementById('empty-msg').style.display='flex';
+  renderStep();
+}
+
+document.getElementById('btn-gen').onclick=generate;
+document.getElementById('btn-png').onclick=exportPNG;
+document.getElementById('btn-pdf').onclick=exportPDF;
+document.getElementById('btn-rst').onclick=resetAll;
+document.getElementById('btn-zi').onclick=zIn;
+document.getElementById('btn-zo').onclick=zOut;
+document.getElementById('btn-rv').onclick=resetV;
+
+renderStep();
+})();
+</script>
+</body>
+</html>
